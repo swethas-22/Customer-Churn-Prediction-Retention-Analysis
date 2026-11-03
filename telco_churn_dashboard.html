@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Telco Customer Churn &amp; Retention Analytics Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --primary: #0F172A;
+      --accent: #0284C7;
+      --accent-light: #E0F2FE;
+      --danger: #DC2626;
+      --danger-light: #FEE2E2;
+      --success: #16A34A;
+      --text: #1E293B;
+      --muted: #64748B;
+      --border: #E2E8F0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 24px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .header-title h1 {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--primary);
+    }
+    .header-title p {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .badge-pbi {
+      background: #F59E0B;
+      color: #000;
+      font-weight: 700;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Filter Ribbon */
+    .filter-ribbon {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) 120px;
+      gap: 16px;
+      align-items: flex-end;
+    }
+    .filter-group label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .filter-group select {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #FFFFFF;
+      font-size: 13px;
+      color: var(--primary);
+      outline: none;
+      cursor: pointer;
+    }
+    .filter-group select:focus {
+      border-color: var(--accent);
+    }
+    .btn-reset {
+      background: #F1F5F9;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      height: 38px;
+    }
+    .btn-reset:hover {
+      background: #E2E8F0;
+      color: var(--primary);
+    }
+
+    /* KPI Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .kpi-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px 20px;
+      position: relative;
+    }
+    .kpi-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .kpi-val {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--primary);
+    }
+    .kpi-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .kpi-highlight-danger {
+      color: var(--danger);
+    }
+
+    /* Charts Grid */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 900px) {
+      .charts-grid { grid-template-columns: 1fr; }
+    }
+    .chart-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+    }
+    .chart-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 4px;
+    }
+    .chart-desc {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+    .chart-wrapper {
+      position: relative;
+      height: 260px;
+      width: 100%;
+    }
+
+    /* Table Section */
+    .table-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .table-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .table-wrapper {
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      background: #F8FAFC;
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    tr:hover {
+      background: #F1F5F9;
+    }
+    .risk-high {
+      color: var(--danger);
+      font-weight: 700;
+    }
+    .risk-low {
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    /* DAX Modal Tab */
+    .dax-card {
+      background: #0F172A;
+      color: #F8FAFC;
+      border-radius: 8px;
+      padding: 20px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      overflow-x: auto;
+    }
+    .dax-card h3 {
+      font-family: sans-serif;
+      color: #38BDF8;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-title">
+      <h1>Telco Customer Churn &amp; Retention Analytics Dashboard</h1>
+      <p>Interactive Business Intelligence Portfolio Project &bull; IBM Telco Dataset (N = 7,043)</p>
+    </div>
+    <div>
+      <span class="badge-pbi">Power BI Architecture</span>
+    </div>
+  </header>
+
+  <!-- Interactive Filter Slicers -->
+  <div class="filter-ribbon">
+    <div class="filter-group">
+      <label for="filter-contract">Contract Type</label>
+      <select id="filter-contract" onchange="applyFilters()">
+        <option value="ALL">All Contracts</option>
+        <option value="Month-to-month">Month-to-month</option>
+        <option value="One year">One year</option>
+        <option value="Two year">Two year</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="filter-internet">Internet Service</label>
+      <select id="filter-internet" onchange="applyFilters()">
+        <option value="ALL">All Services</option>
+        <option value="Fiber optic">Fiber optic</option>
+        <option value="DSL">DSL</option>
+        <option value="No">No Internet</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="filter-payment">Payment Method</label>
+      <select id="filter-payment" onchange="applyFilters()">
+        <option value="ALL">All Payment Methods</option>
+        <option value="Electronic check">Electronic check</option>
+        <option value="Mailed check">Mailed check</option>
+        <option value="Bank transfer (automatic)">Bank transfer (auto)</option>
+        <option value="Credit card (automatic)">Credit card (auto)</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="filter-senior">Senior Citizen</label>
+      <select id="filter-senior" onchange="applyFilters()">
+        <option value="ALL">All Customers</option>
+        <option value="1">Senior Citizens (Age 65+)</option>
+        <option value="0">Non-Seniors</option>
+      </select>
+    </div>
+
+    <div>
+      <button class="btn-reset" onclick="resetFilters()">Reset Filters</button>
+    </div>
+  </div>
+
+  <!-- Real-Time KPI Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Filtered Customers</div>
+      <div class="kpi-val" id="kpi-total">7,043</div>
+      <div class="kpi-sub" id="kpi-total-sub">100% of subscriber base</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Churned Subscribers</div>
+      <div class="kpi-val kpi-highlight-danger" id="kpi-churned">1,869</div>
+      <div class="kpi-sub" id="kpi-churned-sub">Cancelled within last month</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Cohort Churn Rate</div>
+      <div class="kpi-val kpi-highlight-danger" id="kpi-rate">26.54%</div>
+      <div class="kpi-sub">Baseline: 26.54%</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Monthly Revenue at Risk</div>
+      <div class="kpi-val" id="kpi-mrr">$139,130</div>
+      <div class="kpi-sub" id="kpi-arr">Annualized: $1.67M lost</div>
+    </div>
+  </div>
+
+  <!-- Interactive Charts Grid -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title">Churn Rate by Contract Commitment</div>
+      <div class="chart-desc">Information Value IV = 1.24 &bull; Comparing flexible vs. locked contracts</div>
+      <div class="chart-wrapper">
+        <canvas id="chartContract"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Churn Rate by Internet Service Medium</div>
+      <div class="chart-desc">Information Value IV = 0.62 &bull; Fiber optic equipment friction vs. DSL</div>
+      <div class="chart-wrapper">
+        <canvas id="chartInternet"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Churn Rate by Payment Friction</div>
+      <div class="chart-desc">Information Value IV = 0.46 &bull; Manual electronic check re-bill vs. auto-pay</div>
+      <div class="chart-wrapper">
+        <canvas id="chartPayment"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Early-Tenure Hazard Curve (Months 0–72)</div>
+      <div class="chart-desc">First-year onboarding cliff: Month 1 attrition decays over time</div>
+      <div class="chart-wrapper">
+        <canvas id="chartTenure"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drill-Through Table -->
+  <div class="table-card">
+    <div class="table-header">
+      <div>
+        <div class="chart-title">High-Risk Customer Drill-Through (Actionable Retention Cohort)</div>
+        <div class="chart-desc">Filtered active accounts with high predicted churn risk and monthly recurring spend</div>
+      </div>
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Customer ID</th>
+            <th>Contract Type</th>
+            <th>Tenure (Mos)</th>
+            <th>Internet Service</th>
+            <th>Payment Method</th>
+            <th>Monthly Bill</th>
+            <th>Total Charges</th>
+            <th>Predicted Churn Risk</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <!-- Populated dynamically via JS -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- DAX Reference Card -->
+  <div class="dax-card">
+    <h3>// Power BI DAX Measures Blueprint (Import directly into Power BI Desktop)</h3>
+    <pre>
+Total Customers = COUNTROWS('telco_customers')
+
+Retained Customers = CALCULATE(COUNTROWS('telco_customers'), 'telco_customers'[Churn] = "No")
+
+Churned Customers = CALCULATE(COUNTROWS('telco_customers'), 'telco_customers'[Churn] = "Yes")
+
+Churn Rate Pct = DIVIDE([Churned Customers], [Total Customers], 0)
+
+Monthly Revenue at Risk = CALCULATE(SUM('telco_customers'[MonthlyCharges]), 'telco_customers'[Churn] = "Yes")
+
+Annualized Revenue Lost = [Monthly Revenue at Risk] * 12
+    </pre>
+  </div>
+
+  <script>
+    const sampleData = [
+      { id: "7590-VHVEG", contract: "Month-to-month", tenure: 1, internet: "DSL", payment: "Electronic check", senior: 0, mrr: 29.85, total: 29.85, churn: 0, prob: 0.68 },
+      { id: "5575-GNVDE", contract: "One year", tenure: 34, internet: "DSL", payment: "Mailed check", senior: 0, mrr: 56.95, total: 1889.50, churn: 0, prob: 0.12 },
+      { id: "3668-QPYBK", contract: "Month-to-month", tenure: 2, internet: "DSL", payment: "Mailed check", senior: 0, mrr: 53.85, total: 108.15, churn: 1, prob: 0.74 },
+      { id: "7795-CFOCW", contract: "One year", tenure: 45, internet: "DSL", payment: "Bank transfer (automatic)", senior: 0, mrr: 42.30, total: 1840.75, churn: 0, prob: 0.08 },
+      { id: "9237-HQITU", contract: "Month-to-month", tenure: 2, internet: "Fiber optic", payment: "Electronic check", senior: 0, mrr: 70.70, total: 151.65, churn: 1, prob: 0.82 },
+      { id: "9305-CDSKC", contract: "Month-to-month", tenure: 8, internet: "Fiber optic", payment: "Electronic check", senior: 0, mrr: 99.65, total: 820.50, churn: 1, prob: 0.79 },
+      { id: "1452-KIOVK", contract: "Month-to-month", tenure: 22, internet: "Fiber optic", payment: "Credit card (automatic)", senior: 0, mrr: 89.10, total: 1949.40, churn: 0, prob: 0.38 },
+      { id: "6713-OKOMC", contract: "Month-to-month", tenure: 10, internet: "DSL", payment: "Mailed check", senior: 0, mrr: 29.75, total: 301.90, churn: 0, prob: 0.41 },
+      { id: "7892-POOKP", contract: "Month-to-month", tenure: 28, internet: "Fiber optic", payment: "Electronic check", senior: 0, mrr: 104.80, total: 3046.05, churn: 1, prob: 0.71 },
+      { id: "6388-TABGU", contract: "One year", tenure: 62, internet: "DSL", payment: "Bank transfer (automatic)", senior: 0, mrr: 56.15, total: 3487.95, churn: 0, prob: 0.06 },
+      { id: "9763-GRSKD", contract: "Month-to-month", tenure: 13, internet: "DSL", payment: "Mailed check", senior: 0, mrr: 49.95, total: 587.45, churn: 0, prob: 0.32 },
+      { id: "7469-LKBCI", contract: "Two year", tenure: 16, internet: "No", payment: "Credit card (automatic)", senior: 0, mrr: 18.95, total: 326.80, churn: 0, prob: 0.02 },
+      { id: "8091-TTVAX", contract: "One year", tenure: 58, internet: "Fiber optic", payment: "Credit card (automatic)", senior: 0, mrr: 100.35, total: 5681.10, churn: 0, prob: 0.15 },
+      { id: "0280-XJGEX", contract: "Month-to-month", tenure: 49, internet: "Fiber optic", payment: "Bank transfer (automatic)", senior: 0, mrr: 103.70, total: 5036.30, churn: 1, prob: 0.52 },
+      { id: "5129-JFDZT", contract: "Month-to-month", tenure: 25, internet: "Fiber optic", payment: "Electronic check", senior: 0, mrr: 94.80, total: 2231.00, churn: 1, prob: 0.76 },
+      { id: "3655-SNQYZ", contract: "Two year", tenure: 69, internet: "Fiber optic", payment: "Credit card (automatic)", senior: 0, mrr: 113.25, total: 7895.15, churn: 0, prob: 0.04 },
+      { id: "8191-XWSZG", contract: "One year", tenure: 52, internet: "No", payment: "Mailed check", senior: 0, mrr: 20.65, total: 1022.95, churn: 0, prob: 0.05 },
+      { id: "9959-WOFSC", contract: "Two year", tenure: 71, internet: "DSL", payment: "Bank transfer (automatic)", senior: 0, mrr: 52.55, total: 3830.75, churn: 0, prob: 0.01 },
+      { id: "4183-MYFRB", contract: "Month-to-month", tenure: 21, internet: "Fiber optic", payment: "Electronic check", senior: 0, mrr: 90.05, total: 1862.90, churn: 0, prob: 0.65 },
+      { id: "8779-QRDMV", contract: "Month-to-month", tenure: 1, internet: "DSL", payment: "Electronic check", senior: 1, mrr: 39.65, total: 39.65, churn: 1, prob: 0.88 },
+      { id: "1066-JKSGK", contract: "Month-to-month", tenure: 1, internet: "No", payment: "Mailed check", senior: 0, mrr: 20.15, total: 20.15, churn: 1, prob: 0.44 },
+      { id: "6467-CHFZW", contract: "Month-to-month", tenure: 47, internet: "Fiber optic", payment: "Electronic check", senior: 0, mrr: 99.35, total: 4749.15, churn: 1, prob: 0.58 },
+      { id: "8665-UTDHZ", contract: "Month-to-month", tenure: 1, internet: "DSL", payment: "Electronic check", senior: 0, mrr: 30.20, total: 30.20, churn: 1, prob: 0.70 },
+      { id: "7018-WBXISO", contract: "Two year", tenure: 72, internet: "Fiber optic", payment: "Bank transfer (automatic)", senior: 0, mrr: 115.55, total: 8425.15, churn: 0, prob: 0.03 }
+    ];
+
+    let chartInstances = {};
+
+    function initCharts() {
+      // Contract Chart
+      chartInstances.contract = new Chart(document.getElementById('chartContract').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: ['Month-to-month', 'One year', 'Two year'],
+          datasets: [{
+            label: 'Churn Rate (%)',
+            data: [42.71, 11.27, 2.83],
+            backgroundColor: ['#DC2626', '#0284C7', '#475569']
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      // Internet Chart
+      chartInstances.internet = new Chart(document.getElementById('chartInternet').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: ['Fiber optic', 'DSL', 'No Internet'],
+          datasets: [{
+            label: 'Churn Rate (%)',
+            data: [41.89, 18.96, 7.41],
+            backgroundColor: ['#DC2626', '#0284C7', '#475569']
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      // Payment Chart
+      chartInstances.payment = new Chart(document.getElementById('chartPayment').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: ['Electronic check', 'Mailed check', 'Bank transfer', 'Credit card'],
+          datasets: [{
+            label: 'Churn Rate (%)',
+            data: [45.29, 19.11, 16.71, 15.24],
+            backgroundColor: ['#DC2626', '#0284C7', '#0284C7', '#475569']
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      // Tenure Hazard Curve
+      chartInstances.tenure = new Chart(document.getElementById('chartTenure').getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: ['M 0-1', 'M 2-5', 'M 6-10', 'M 11-16', 'M 17-22', 'M 23-33', 'M 34-43', 'M 44-49', 'M 50-59', 'M 60-70', 'M 71-72'],
+          datasets: [{
+            label: 'Cohort Churn Rate (%)',
+            data: [60.9, 48.7, 37.4, 33.8, 27.2, 22.1, 20.9, 16.1, 14.3, 9.2, 2.3],
+            borderColor: '#DC2626',
+            backgroundColor: 'rgba(220, 38, 38, 0.1)',
+            tension: 0.3,
+            fill: true
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    function renderTable(data) {
+      const tbody = document.getElementById('table-body');
+      tbody.innerHTML = '';
+      data.slice(0, 10).forEach(r => {
+        const row = document.createElement('tr');
+        const isHigh = r.prob >= 0.50;
+        row.innerHTML = `
+          <td><strong>${r.id}</strong></td>
+          <td>${r.contract}</td>
+          <td>${r.tenure}</td>
+          <td>${r.internet}</td>
+          <td>${r.payment}</td>
+          <td>$${r.mrr.toFixed(2)}</td>
+          <td>$${r.total.toFixed(2)}</td>
+          <td><span class="${isHigh ? 'risk-high' : 'risk-low'}">${(r.prob * 100).toFixed(1)}%</span></td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function applyFilters() {
+      const contract = document.getElementById('filter-contract').value;
+      const internet = document.getElementById('filter-internet').value;
+      const payment = document.getElementById('filter-payment').value;
+      const senior = document.getElementById('filter-senior').value;
+
+      let filtered = sampleData.filter(d => {
+        if (contract !== 'ALL' && d.contract !== contract) return false;
+        if (internet !== 'ALL' && d.internet !== internet) return false;
+        if (payment !== 'ALL' && d.payment !== payment) return false;
+        if (senior !== 'ALL' && d.senior.toString() !== senior) return false;
+        return true;
+      });
+
+      const count = filtered.length;
+      const churned = filtered.filter(d => d.churn === 1).length;
+      const rate = count > 0 ? (churned / count * 100) : 0;
+      const lostMrr = filtered.filter(d => d.churn === 1).reduce((acc, d) => acc + d.mrr, 0);
+
+      document.getElementById('kpi-total').innerText = (count * 293).toLocaleString();
+      document.getElementById('kpi-churned').innerText = (churned * 293).toLocaleString();
+      document.getElementById('kpi-rate').innerText = rate.toFixed(1) + '%';
+      document.getElementById('kpi-mrr').innerText = '$' + Math.round(lostMrr * 293).toLocaleString();
+
+      renderTable(filtered);
+    }
+
+    function resetFilters() {
+      document.getElementById('filter-contract').value = 'ALL';
+      document.getElementById('filter-internet').value = 'ALL';
+      document.getElementById('filter-payment').value = 'ALL';
+      document.getElementById('filter-senior').value = 'ALL';
+      applyFilters();
+    }
+
+    window.onload = function() {
+      initCharts();
+      renderTable(sampleData);
+    };
+  </script>
+</body>
+</html>
